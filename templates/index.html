@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Text Summarizer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #f7f7fa; }
+        .container { margin-top: 40px; }
+        textarea { font-size: 1em; }
+        .score-table { font-size: 0.95em; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1 class="mb-4">📝 Powerful Text Summarizer</h1>
+    <form method="POST" enctype="multipart/form-data" class="mb-4">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label class="form-label">Paste Text</label>
+                <textarea class="form-control" name="text_input" rows="6" placeholder="Paste your text here...">{{ original_text }}</textarea>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Or upload .txt file</label>
+                <input type="file" class="form-control" name="file_input" accept=".txt"/>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <label class="form-label">Method</label>
+                <select class="form-select" name="method">
+                    <option {% if method=="Extractive" %}selected{% endif %}>Extractive</option>
+                    <option {% if method=="Abstractive" %}selected{% endif %}>Abstractive</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Abstractive Model</label>
+                <select class="form-select" name="abstractive_model">
+                    {% for val, name in models %}
+                    <option value="{{ val }}" {% if model_choice==val %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Extractive: Length Ratio</label>
+                <input type="number" class="form-control" step="0.05" min="0.05" max="0.8" name="summary_length_ratio" value="{{ summary_length_ratio }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Abstractive: Min Length</label>
+                <input type="number" class="form-control" name="min_length" value="{{ min_length }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Abstractive: Max Length</label>
+                <input type="number" class="form-control" name="max_length" value="{{ max_length }}">
+            </div>
+        </div>
+        <button class="btn btn-primary" type="submit">Summarize</button>
+    </form>
+    {% if error %}
+        <div class="alert alert-warning">{{ error }}</div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Original Text</h4>
+            <textarea class="form-control" rows="10" readonly>{{ original_text }}</textarea>
+        </div>
+        <div class="col-md-6">
+            <h4>{{ method }} Summary</h4>
+            <textarea class="form-control" rows="10" readonly>{{ summary }}</textarea>
+            {% if compression %}
+            <p class="mt-2 text-muted">Summary length: <b>{{ summary.split()|length }}</b> words<br>
+            Compression ratio: <b>{{ compression }}%</b></p>
+            {% endif %}
+            <p class="mt-2 text-muted">Detected language: <b>{{ detected_language }}</b></p>
+        </div>
+    </div>
+
+    {% if scores and method=="Extractive" %}
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <h5>Sentence Importance Scores</h5>
+            <table class="table table-bordered score-table">
+                <thead>
+                    <tr>
+                        <th>Score</th>
+                        <th>Sentence</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% set sentences = original_text.split('.') %}
+                {% for s, score in zip(sentences, scores) %}
+                    <tr>
+                        <td>{{ "%.3f"|format(score) }}</td>
+                        <td>{{ s }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    <div class="mt-4">
+        <hr>
+        <p class="text-muted">Recommended word limit for best summary: <b>500 words</b> for abstractive, up to <b>2000 words</b> for extractive. Accuracy may drop above these limits, but chunking will help.</p>
+    </div>
+</div>
+</body>
+</html>
